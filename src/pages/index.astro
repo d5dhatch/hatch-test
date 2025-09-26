@@ -1,21 +1,481 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import ContextAlert from '../components/ContextAlert.astro';
-import Markdown from '../components/Markdown.astro';
 
-const explainer = `
-An Astro website can go way beyond static pages - on the right platform.
+const lastUpdated = 'May 18, 2024';
 
-Netlify supports not only [Streaming SSR](https://docs.astro.build/en/guides/server-side-rendering/#html-streaming) and fast [Edge Middleware](https://docs.astro.build/en/guides/middleware/), but also [on-demand revalidation](https://www.netlify.com/blog/cache-tags-and-purge-api-on-netlify/) and [stale-while-revalidate](https://www.netlify.com/blog/swr-and-fine-grained-cache-control/). 
-Any page or data can be rebuilt only when needed, without site visitors ever getting a performance hit.
-`;
+const summaryCards = [
+    {
+        label: 'Overall status',
+        value: 'Stable & improving',
+        description: 'Key biomarkers are trending toward optimal ranges with no urgent flags detected.',
+        accent: 'bg-emerald-400/20 text-emerald-200',
+        icon: '🩺',
+    },
+    {
+        label: 'Sleep quality',
+        value: '7.4 hrs avg',
+        description: 'Restorative sleep increased 12% over the past month, supporting recovery.',
+        accent: 'bg-indigo-400/20 text-indigo-200',
+        icon: '🌙',
+    },
+    {
+        label: 'Activity readiness',
+        value: 'Moderate',
+        description: 'Energy markers indicate light strength training and zone 2 cardio are recommended this week.',
+        accent: 'bg-sky-400/20 text-sky-200',
+        icon: '⚡️',
+    },
+];
+
+const biomarkerTrends = [
+    {
+        name: 'Fasting Glucose',
+        current: '92',
+        unit: 'mg/dL',
+        target: 'Target: 80–95',
+        change: '-6 vs. last quarter',
+        direction: 'falling',
+        accent: '#34d399',
+        data: [108, 102, 99, 97, 94, 92],
+    },
+    {
+        name: 'LDL Cholesterol',
+        current: '104',
+        unit: 'mg/dL',
+        target: 'Target: < 110',
+        change: '-12 vs. last year',
+        direction: 'falling',
+        accent: '#60a5fa',
+        data: [136, 128, 121, 118, 110, 104],
+    },
+    {
+        name: 'hs-CRP',
+        current: '0.8',
+        unit: 'mg/L',
+        target: 'Target: < 1.0',
+        change: '-0.4 vs. last month',
+        direction: 'falling',
+        accent: '#f472b6',
+        data: [2.1, 1.7, 1.4, 1.2, 0.9, 0.8],
+    },
+    {
+        name: 'Vitamin D',
+        current: '48',
+        unit: 'ng/mL',
+        target: 'Target: 40–60',
+        change: '+6 vs. last season',
+        direction: 'rising',
+        accent: '#fbbf24',
+        data: [32, 36, 41, 44, 46, 48],
+    },
+];
+
+let sparklineSeed = 0;
+const createSparkline = (data: number[]) => {
+    const width = 160;
+    const height = 56;
+    const padding = 6;
+    const innerWidth = width - padding * 2;
+    const innerHeight = height - padding * 2;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1;
+    const path = data
+        .map((value, index) => {
+            const x = padding + (index / Math.max(data.length - 1, 1)) * innerWidth;
+            const y = padding + innerHeight - ((value - min) / range) * innerHeight;
+            return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
+        })
+        .join(' ');
+    const last = data[data.length - 1];
+    const lastIndex = data.length - 1;
+    const lastX = padding + (lastIndex / Math.max(data.length - 1, 1)) * innerWidth;
+    const lastY = padding + innerHeight - ((last - min) / range) * innerHeight;
+    const gradientId = `sparkline-${sparklineSeed++}`;
+
+    return {
+        width,
+        height,
+        padding,
+        innerWidth,
+        innerHeight,
+        path,
+        areaPath: `${path} L${lastX.toFixed(2)},${height - padding} L${padding.toFixed(2)},${height - padding} Z`,
+        lastX,
+        lastY,
+        gradientId,
+    };
+};
+
+const biomarkerTrendCharts = biomarkerTrends.map((marker) => ({
+    ...marker,
+    sparkline: createSparkline(marker.data),
+}));
+
+const biomarkerGroups = [
+    {
+        title: 'Cardiometabolic health',
+        description: 'Blood pressure, glucose and lipid markers are moving toward optimal targets with lifestyle adjustments.',
+        note: 'Continue Mediterranean-style nutrition, prioritize hydration, and maintain 4× weekly movement.',
+        items: [
+            {
+                name: 'Total Cholesterol',
+                value: 182,
+                unit: 'mg/dL',
+                status: 'Optimal',
+                tone: 'emerald',
+                insight: 'Improved ratio due to increased omega-3 intake.',
+            },
+            {
+                name: 'Triglycerides',
+                value: 78,
+                unit: 'mg/dL',
+                status: 'Optimal',
+                tone: 'emerald',
+                insight: 'Stable with reduced added sugars.',
+            },
+            {
+                name: 'A1C',
+                value: 5.3,
+                unit: '%',
+                status: 'Watch',
+                tone: 'amber',
+                insight: 'Slightly elevated after recent travel; re-test in 3 months.',
+            },
+        ],
+    },
+    {
+        title: 'Hormonal balance',
+        description: 'Thyroid and cortisol rhythms show steady improvement with consistent sleep and stress management.',
+        note: 'Continue morning sunlight exposure and maintain adaptogenic support for another 6 weeks.',
+        items: [
+            {
+                name: 'TSH',
+                value: 1.8,
+                unit: 'µIU/mL',
+                status: 'Optimal',
+                tone: 'emerald',
+                insight: 'Within range and trending downward.',
+            },
+            {
+                name: 'Free T4',
+                value: 1.2,
+                unit: 'ng/dL',
+                status: 'Optimal',
+                tone: 'emerald',
+                insight: 'Stable compared to last draw.',
+            },
+            {
+                name: 'Morning Cortisol',
+                value: 14.2,
+                unit: 'µg/dL',
+                status: 'Balanced',
+                tone: 'sky',
+                insight: 'Healthy peak with improved afternoon decline.',
+            },
+        ],
+    },
+    {
+        title: 'Micronutrient status',
+        description: 'Key micronutrients support energy, immunity, and recovery after training blocks.',
+        note: 'Shift vitamin D supplementation to 3× weekly to maintain range and retest ferritin in 8 weeks.',
+        items: [
+            {
+                name: 'Ferritin',
+                value: 68,
+                unit: 'ng/mL',
+                status: 'On track',
+                tone: 'sky',
+                insight: 'Improved with iron bisglycinate; re-evaluate dosage next panel.',
+            },
+            {
+                name: 'Vitamin B12',
+                value: 612,
+                unit: 'pg/mL',
+                status: 'Optimal',
+                tone: 'emerald',
+                insight: 'Maintain current methylated B-complex protocol.',
+            },
+            {
+                name: 'Magnesium RBC',
+                value: 5.0,
+                unit: 'mg/dL',
+                status: 'Watch',
+                tone: 'amber',
+                insight: 'Slight decrease noted; add evening glycinate dose.',
+            },
+        ],
+    },
+];
+
+const reports = [
+    {
+        title: 'Comprehensive Metabolic Panel',
+        date: 'May 18, 2024',
+        highlights: ['Electrolytes within optimal range', 'ALT trending down into target zone', 'Kidney function stable'],
+    },
+    {
+        title: 'Advanced Lipid Panel',
+        date: 'March 02, 2024',
+        highlights: ['LDL-P decreased 8%', 'Improved HDL functionality score', 'Recommend continue omega-3 protocol'],
+    },
+    {
+        title: 'Functional Hormone Assessment',
+        date: 'January 27, 2024',
+        highlights: ['Cortisol awakening response normalized', 'DHEA within optimal range', 'Sleep hygiene noted as key variable'],
+    },
+];
+
+const upcomingActions = [
+    {
+        title: 'Schedule next fasting blood draw',
+        due: 'Due: June 12, 2024',
+        type: 'Lab',
+        description: 'Include CMP, fasting insulin, thyroid panel, ferritin, and omega-3 index.',
+    },
+    {
+        title: 'Upload wearable sleep export',
+        due: 'Due: Weekly on Mondays',
+        type: 'Data sync',
+        description: 'Import Oura and Whoop CSV exports to keep recovery insights aligned with blood work.',
+    },
+    {
+        title: 'Share notes with nutritionist',
+        due: 'Due: May 24, 2024',
+        type: 'Collaboration',
+        description: 'Review micronutrient adjustments and confirm supplementation taper plan.',
+    },
+];
+
+const qualitativeInsights = [
+    'Prioritize consistent hydration (goal 70 oz) to support renal markers and blood pressure.',
+    'Layer two low-intensity cardio sessions (30 minutes zone 2) between strength days to support insulin sensitivity.',
+    'Shift blue-light cutoff to 9:30pm to protect melatonin production and improve REM sleep share.',
+];
 ---
 
-<Layout title="Welcome to Astro.">
-    <ContextAlert class="mb-8" />
-    <h1 class="mb-10">Netlify Platform Starter for Astro</h1>
-    <Markdown content={explainer} class="mb-10 text-lg" />
-    <p>
-        <a href="https://docs.netlify.com/frameworks/astro/" class="btn btn-lg sm:min-w-64">Read the Docs</a>
-    </p>
+<Layout title="Personal Health Dashboard">
+    <section class="py-12 space-y-6 sm:py-16">
+        <p class="text-sm uppercase tracking-[0.3em] text-gray-300">Personal health hub</p>
+        <h1>Your biomarkers at a glance</h1>
+        <p class="max-w-2xl text-lg text-gray-200">
+            Centralize blood work, lifestyle metrics, and care plans in a single view. Review trends, upcoming actions, and
+            clinical summaries without sifting through PDFs or portals.
+        </p>
+        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-300">
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10">
+                <span class="text-lg">📄</span>
+                3 latest lab reports synced
+            </span>
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10">
+                <span class="text-lg">⏱️</span>
+                Updated {lastUpdated}
+            </span>
+        </div>
+    </section>
+
+    <section class="grid gap-6 pb-10 sm:grid-cols-3">
+        {summaryCards.map((card) => (
+            <article class="p-6 space-y-4 transition bg-white/5 rounded-2xl ring-1 ring-white/10 hover:ring-primary/60">
+                <div
+                    class:list={[
+                        'inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold rounded-full bg-white/10 text-primary',
+                        card.accent,
+                    ]}
+                >
+                    <span aria-hidden="true">{card.icon}</span>
+                    {card.label}
+                </div>
+                <p class="text-2xl font-semibold">{card.value}</p>
+                <p class="text-sm text-gray-200">{card.description}</p>
+            </article>
+        ))}
+    </section>
+
+    <section class="py-12 space-y-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="mb-2">Key biomarker trends</h2>
+                <p class="max-w-2xl text-gray-200">
+                    Track the markers you review most often. Sparklines reveal directionality and momentum so you can spot
+                    plateaus before your next lab draw.
+                </p>
+            </div>
+            <a class="btn" href="#reports">View detailed reports</a>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2">
+            {biomarkerTrendCharts.map((marker) => (
+                <article class="p-6 space-y-5 bg-white/5 rounded-2xl ring-1 ring-white/10">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm uppercase tracking-[0.2em] text-gray-400">{marker.target}</p>
+                            <h3 class="mt-2 text-xl font-semibold">{marker.name}</h3>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-3xl font-bold">{marker.current}</p>
+                            <p class="text-sm text-gray-300">{marker.unit}</p>
+                        </div>
+                    </div>
+                    <figure class="flex flex-col gap-2" aria-label={`${marker.name} trend line`}>
+                        <svg
+                            viewBox={`0 0 ${marker.sparkline.width} ${marker.sparkline.height}`}
+                            width={marker.sparkline.width}
+                            height={marker.sparkline.height}
+                            role="img"
+                            class="w-full"
+                            aria-hidden="false"
+                        >
+                            <defs>
+                                <linearGradient id={marker.sparkline.gradientId} x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stop-color={marker.accent} stop-opacity="0.3" />
+                                    <stop offset="100%" stop-color={marker.accent} stop-opacity="0" />
+                                </linearGradient>
+                            </defs>
+                            <rect
+                                x={marker.sparkline.padding}
+                                y={marker.sparkline.padding}
+                                width={marker.sparkline.innerWidth}
+                                height={marker.sparkline.innerHeight}
+                                rx="8"
+                                ry="8"
+                                class="fill-white/5"
+                            />
+                            <path
+                                d={marker.sparkline.path}
+                                fill="none"
+                                stroke={marker.accent}
+                                stroke-width="2.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                            <path
+                                d={marker.sparkline.areaPath}
+                                fill={`url(#${marker.sparkline.gradientId})`}
+                                opacity="0.35"
+                            />
+                            <circle cx={marker.sparkline.lastX} cy={marker.sparkline.lastY} r="4" fill={marker.accent} />
+                        </svg>
+                    </figure>
+                    <p class="text-sm text-gray-200">{marker.change}</p>
+                </article>
+            ))}
+        </div>
+    </section>
+
+    <section class="py-12 space-y-10">
+        <div class="flex flex-col gap-2">
+            <h2>Clinical panels</h2>
+            <p class="max-w-3xl text-gray-200">
+                Drill into each functional panel to connect biomarkers with daily habits. Notes capture practitioner guidance and
+                contextualize next steps.
+            </p>
+        </div>
+        <div class="grid gap-6 xl:grid-cols-3">
+            {biomarkerGroups.map((group) => (
+                <article class="flex flex-col gap-5 p-6 bg-white/5 rounded-2xl ring-1 ring-white/10">
+                    <div class="space-y-3">
+                        <h3 class="text-xl font-semibold">{group.title}</h3>
+                        <p class="text-sm text-gray-200">{group.description}</p>
+                    </div>
+                    <ul class="flex flex-col gap-4">
+                        {group.items.map((item) => (
+                            <li class="flex items-start justify-between gap-3 p-4 bg-white/5 rounded-xl">
+                                <div>
+                                    <p class="font-medium">{item.name}</p>
+                                    <p class="text-sm text-gray-300">{item.insight}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-semibold">{item.value}<span class="text-sm font-medium text-gray-300"> {item.unit}</span></p>
+                                    <span
+                                        class:list={[
+                                            'inline-flex mt-2 items-center justify-center px-2.5 py-1 text-xs font-semibold rounded-full',
+                                            item.tone === 'emerald' && 'bg-emerald-400/15 text-emerald-200',
+                                            item.tone === 'sky' && 'bg-sky-400/15 text-sky-200',
+                                            item.tone === 'amber' && 'bg-amber-400/20 text-amber-200',
+                                        ]}
+                                    >
+                                        {item.status}
+                                    </span>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                    <p class="text-sm text-gray-300">{group.note}</p>
+                </article>
+            ))}
+        </div>
+    </section>
+
+    <section id="reports" class="py-12 space-y-8">
+        <div class="flex flex-col gap-2">
+            <h2>Lab reports & documentation</h2>
+            <p class="max-w-3xl text-gray-200">
+                Keep an organized archive of every PDF, provider note, and wearable export. Upload new files to attach them to
+                relevant biomarker panels.
+            </p>
+        </div>
+        <div class="grid gap-6 lg:grid-cols-3">
+            {reports.map((report) => (
+                <article class="flex flex-col gap-4 p-6 bg-white/5 rounded-2xl ring-1 ring-white/10">
+                    <div>
+                        <p class="text-sm text-gray-400">{report.date}</p>
+                        <h3 class="mt-1 text-xl font-semibold">{report.title}</h3>
+                    </div>
+                    <ul class="flex flex-col gap-2 text-sm text-gray-200 list-disc list-inside">
+                        {report.highlights.map((highlight) => (
+                            <li>{highlight}</li>
+                        ))}
+                    </ul>
+                    <button class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-white/10 hover:bg-white/15">
+                        <span>Open report</span>
+                        <span aria-hidden="true">↗</span>
+                    </button>
+                </article>
+            ))}
+        </div>
+    </section>
+
+    <section class="py-12 space-y-10">
+        <div class="grid gap-10 lg:grid-cols-[2fr,1fr]">
+            <div class="space-y-6">
+                <h2>Care plan & next steps</h2>
+                <p class="text-gray-200">
+                    Align biomarkers with habits and provider recommendations. Check off actions as you complete them and the
+                    dashboard will update readiness scores automatically.
+                </p>
+                <ul class="flex flex-col gap-4">
+                    {upcomingActions.map((action) => (
+                        <li class="flex flex-col gap-3 p-5 bg-white/5 rounded-2xl ring-1 ring-white/10">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold tracking-[0.25em] uppercase text-gray-400">{action.type}</span>
+                                <span class="text-sm text-gray-300">{action.due}</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold">{action.title}</h3>
+                                <p class="text-sm text-gray-200">{action.description}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-200">
+                                    <input type="checkbox" class="w-4 h-4 border border-white/40 rounded" /> Mark complete
+                                </label>
+                                <button class="text-sm font-medium underline">Add to calendar</button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            <aside class="flex flex-col gap-5 p-6 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent rounded-3xl ring-1 ring-white/10">
+                <h3 class="text-xl font-semibold">Practitioner insights</h3>
+                <p class="text-sm text-white/90">
+                    Observations from your last consultation, captured for quick reference when planning your week.
+                </p>
+                <ul class="flex flex-col gap-3 text-sm text-white/90 list-disc list-inside">
+                    {qualitativeInsights.map((insight) => (
+                        <li>{insight}</li>
+                    ))}
+                </ul>
+                <button class="btn self-start">Share dashboard</button>
+            </aside>
+        </div>
+    </section>
 </Layout>
